@@ -1,25 +1,16 @@
 console.log("<------- Personal Budget -------->");
 
-/**
- * "Como usuario, quiero registrar el nombre, tipo(ingreso ó egreso) y monto 
- * de una compra o ingreso, para llevar un control de mi dinero."
- * Criterios de Aceptación:
- * El sistema solicita el nombre y duración.
- * Si el nombre está vacío o la duración es menor o igual a cero, muestra un mensaje de error.
- * Si los datos son válidos, se guarda la actividad.
- */
-
-// variable global que permite registrar las operaciones
+// Variable global que permite registrar las operaciones
 const transacciones = [];
 
 function registrarIngresoOEgreso() {
   while (true) {
     const transaccion = prompt("Ingrese el nombre de la transacción");
-    
+
     // Validar que el nombre no esté vacío
     if (!transaccion) {
       alert("El nombre de la transacción no puede estar vacío. Inténtalo de nuevo.");
-      continue; // Volver a solicitar la transacción
+      continue;
     }
 
     const tipoDeTransaccion = prompt(
@@ -29,7 +20,7 @@ function registrarIngresoOEgreso() {
     // Validar que el tipo de transacción sea válido
     if (tipoDeTransaccion !== '1' && tipoDeTransaccion !== '2') {
       alert("Tipo de transacción no válido. Debe ser 1 o 2. Inténtalo de nuevo.");
-      continue; // Volver a solicitar el tipo de transacción
+      continue;
     }
 
     const monto = parseFloat(prompt("Ingrese el monto de la transacción"));
@@ -37,18 +28,17 @@ function registrarIngresoOEgreso() {
     // Validar que el monto sea un número y mayor que cero
     if (isNaN(monto) || monto <= 0) {
       alert("El monto debe ser un número mayor que cero. Inténtalo de nuevo.");
-      continue; // Volver a solicitar el monto
+      continue;
     }
 
     // Guardar la transacción
     transacciones.push({
       transaccion,
-      tipoDeTransaccion: tipoDeTransaccion === '1' ? 'Ingreso' : 'Egreso', // Convertir a texto
+      tipoDeTransaccion: tipoDeTransaccion === '1' ? 'Ingreso' : 'Egreso',
       monto,
     });
 
     const confirmacion = confirm("¿Desea agregar otra transacción?");
-    // Detener el while si el usuario no quiere agregar más transacciones
     if (!confirmacion) {
       break;
     }
@@ -58,5 +48,34 @@ function registrarIngresoOEgreso() {
 // Llamar a la función para registrar transacciones
 registrarIngresoOEgreso();
 
-// Mostrar las transacciones registradas
+// Función para obtener una lista de nombres de transacciones
+function obtenerListaDeTransacciones() {
+  const listaDeTransacciones = transacciones.map(transaccion => transaccion.transaccion);
+  console.log("Lista de transacciones:", listaDeTransacciones);
+  return listaDeTransacciones;
+}
+
+// Función para obtener gastos mayores a 100
+function obtenerGastosMayoresA100() {
+  const gastosMayoresA100 = transacciones.filter(transaccion =>
+    transaccion.tipoDeTransaccion === 'Egreso' && transaccion.monto > 100
+  );
+  console.log("Gastos mayores a $100:", gastosMayoresA100);
+  return gastosMayoresA100;
+}
+
+// Función para buscar una transacción por su nombre
+function buscarTransaccionPorNombre(nombre) {
+  const transaccionEncontrada = transacciones.find(transaccion => transaccion.transaccion === nombre);
+
+  if (!transaccionEncontrada) {
+    console.log(`No se encontró una transacción con el nombre "${nombre}".`);
+    return null;
+  }
+
+  console.log("Transacción encontrada:", transaccionEncontrada);
+  return transaccionEncontrada;
+}
+
+// Mostrar las transacciones registradas en la consola
 console.log("Transacciones registradas:", transacciones);
