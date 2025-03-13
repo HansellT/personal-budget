@@ -1,81 +1,114 @@
 console.log("<------- Personal Budget -------->");
 
-// Variable global que permite registrar las operaciones
+// Seleccionar elementos del DOM
+const form = document.querySelector("#transaction-form");
+const transactionList = document.querySelector("#transaction-list");
+const balanceEl = document.querySelector("#balance");
+const incomeEl = document.querySelector("#income");
+const expenseEl = document.querySelector("#expense");
+
+// Arreglo de transacciones
 const transacciones = [];
 
-function registrarIngresoOEgreso() {
-  while (true) {
-    const transaccion = prompt("Ingrese el nombre de la transacción");
-
-    // Validar que el nombre no esté vacío
-    if (!transaccion) {
-      alert("El nombre de la transacción no puede estar vacío. Inténtalo de nuevo.");
-      continue;
-    }
-
-    const tipoDeTransaccion = prompt(
-      "Escoja el tipo de transacción \n1) Ingreso\n2) Egreso\n\n Solo debe poner el número de la opción"
-    );
-
-    // Validar que el tipo de transacción sea válido
-    if (tipoDeTransaccion !== '1' && tipoDeTransaccion !== '2') {
-      alert("Tipo de transacción no válido. Debe ser 1 o 2. Inténtalo de nuevo.");
-      continue;
-    }
-
-    const monto = parseFloat(prompt("Ingrese el monto de la transacción"));
-
-    // Validar que el monto sea un número y mayor que cero
-    if (isNaN(monto) || monto <= 0) {
-      alert("El monto debe ser un número mayor que cero. Inténtalo de nuevo.");
-      continue;
-    }
-
-    // Guardar la transacción
-    transacciones.push({
-      transaccion,
-      tipoDeTransaccion: tipoDeTransaccion === '1' ? 'Ingreso' : 'Egreso',
-      monto,
+class Movimiento {
+  constructor(tipo, monto, descripcion) {
+    this.tipo = tipo; // 'income' o 'expense'
+    this.monto = parseFloat(monto).toFixed(2); // Se fuerza a 2 decimales
+    this.descripcion = descripcion;
+    this.fecha = new Date().toLocaleString("es-PE", {
+      timeZone: "America/Lima",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
     });
+  }
 
-    const confirmacion = confirm("¿Desea agregar otra transacción?");
-    if (!confirmacion) {
-      break;
+  validarMovimiento() {
+    if (!this.descripcion.trim()) {
+      return { ok: false, message: "La descripción no puede estar vacía." };
     }
+    if (isNaN(this.monto) || this.monto <= 0) {
+      return { ok: false, message: "El monto debe ser un número mayor que cero." };
+    }
+    return { ok: true };
+  }
+
+  render() {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="px-6 py-4">
+        <span class="px-2 py-1 rounded-lg ${this.tipo === "income" ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"}">
+          ${this.descripcion}
+        </span>
+      </td>
+      <td class="px-6 py-4 ${this.tipo === "income" ? "text-green-600" : "text-red-600"}">
+        $${this.monto}
+      </td>
+      <td class="px-6 py-4">${this.fecha}</td>
+      <td class="px-6 py-4 text-right">
+        <button onclick="eliminarTransaccion('${this.descripcion}')" class="text-red-500">Eliminar</button>
+      </td>
+    `;
+    transactionList.appendChild(row);
   }
 }
 
-// Llamar a la función para registrar transacciones
-registrarIngresoOEgreso();
+function actualizarBalance() {
+  const ingresos = transacciones
+    .filter(t => t.tipo === "income")
+    .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+  const egresos = transacciones
+    .filter(t => t.tipo === "expense")
+    .reduce((sum, t) => sum + parseFloat(t.monto), 0);
+  const balance = ingresos - egresos;
 
-// Función para obtener una lista de nombres de transacciones
-function obtenerListaDeTransacciones() {
-  const listaDeTransacciones = transacciones.map(transaccion => transaccion.transaccion);
-  console.log("Lista de transacciones:", listaDeTransacciones);
-  return listaDeTransacciones;
+  balanceEl.textContent = `$${balance.toFixed(2)}`;
+  incomeEl.textContent = `$${ingresos.toFixed(2)}`;
+  expenseEl.textContent = `$${egresos.toFixed(2)}`;
 }
 
-// Función para obtener gastos mayores a 100
-function obtenerGastosMayoresA100() {
-  const gastosMayoresA100 = transacciones.filter(transaccion =>
-    transaccion.tipoDeTransaccion === 'Egreso' && transaccion.monto > 100
-  );
-  console.log("Gastos mayores a $100:", gastosMayoresA100);
-  return gastosMayoresA100;
-}
+function registrarIngresoOEgreso(event) {
+  event.preventDefault();
 
-// Función para buscar una transacción por su nombre
-function buscarTransaccionPorNombre(nombre) {
-  const transaccionEncontrada = transacciones.find(transaccion => transaccion.transaccion === nombre);
+  const descripcion = document.querySelector("#description").value;
+  const monto = parseFloat(document.querySelector("#amount").value);
+  const tipo = document.querySelector("input[name='type']:checked").value;
 
-  if (!transaccionEncontrada) {
-    console.log(`No se encontró una transacción con el nombre "${nombre}".`);
-    return null;
+  const movimiento = new Movimiento(tipo, monto, descripcion);
+  const validacion = movimiento.validarMovimiento();
+
+  if (!validacion.ok) {
+    alert(validacion.message);
+    return;
   }
 
-  console.log("Transacción encontrada:", transaccionEncontrada);
-  return transaccionEncontrada;
+  transacciones.push(movimiento);
+  movimiento.render();
+  actualizarBalance();
+  form.reset();
 }
 
-// Mostrar las transacciones registradas en la consola
-console.log("Transacciones registradas:", transacciones);
+function eliminarTransaccion(descripcion) {
+  const index = transacciones.findIndex(t => t.descripcion === descripcion);
+  if (index !== -1) {
+    transacciones.splice(index, 1);
+    transactionList.innerHTML = "";
+    transacciones.forEach(mov => mov.render());
+    actualizarBalance();
+  }
+}
+
+function mapTransactionNames() {
+  const names = transacciones.map(t => t.descripcion);
+  console.log("Lista de nombres de transacciones:", names);
+}
+
+function filterTransactions() {
+  const filtroDeDatos = transacciones.filter(t => parseFloat(t.monto) > 100 && t.tipo === "expense");
+  console.log("Gastos mayores a $100:", filtroDeDatos);
+}
+
+form.addEventListener("submit", registrarIngresoOEgreso);
