@@ -6,9 +6,11 @@ const transactionList = document.querySelector("#transaction-list");
 const balanceEl = document.querySelector("#balance");
 const incomeEl = document.querySelector("#income");
 const expenseEl = document.querySelector("#expense");
+const submitButton = document.querySelector("#transaction-form button");
 
 // Arreglo de transacciones
 const transacciones = [];
+let editIndex = null; // Índice de la transacción en edición
 
 class Movimiento {
   constructor(tipo, monto, descripcion) {
@@ -36,7 +38,7 @@ class Movimiento {
     return { ok: true };
   }
 
-  render() {
+  render(index) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td class="px-6 py-4">
@@ -49,7 +51,8 @@ class Movimiento {
       </td>
       <td class="px-6 py-4">${this.fecha}</td>
       <td class="px-6 py-4 text-right">
-        <button onclick="eliminarTransaccion('${this.descripcion}')" class="text-red-500">Eliminar</button>
+        <button onclick="editarTransaccion(${index})" class="text-blue-500 mr-2">Editar</button>
+        <button onclick="eliminarTransaccion(${index})" class="text-red-500">Eliminar</button>
       </td>
     `;
     transactionList.appendChild(row);
@@ -70,6 +73,12 @@ function actualizarBalance() {
   expenseEl.textContent = `$${egresos.toFixed(2)}`;
 }
 
+function actualizarLista() {
+  transactionList.innerHTML = "";
+  transacciones.forEach((mov, index) => mov.render(index));
+  actualizarBalance();
+}
+
 function registrarIngresoOEgreso(event) {
   event.preventDefault();
 
@@ -85,30 +94,30 @@ function registrarIngresoOEgreso(event) {
     return;
   }
 
-  transacciones.push(movimiento);
-  movimiento.render();
-  actualizarBalance();
+  if (editIndex !== null) {
+    transacciones[editIndex] = movimiento;
+    editIndex = null;
+    submitButton.textContent = "Añadir Transacción";
+  } else {
+    transacciones.push(movimiento);
+  }
+
+  actualizarLista();
   form.reset();
 }
 
-function eliminarTransaccion(descripcion) {
-  const index = transacciones.findIndex(t => t.descripcion === descripcion);
-  if (index !== -1) {
-    transacciones.splice(index, 1);
-    transactionList.innerHTML = "";
-    transacciones.forEach(mov => mov.render());
-    actualizarBalance();
-  }
+function editarTransaccion(index) {
+  const movimiento = transacciones[index];
+  document.querySelector("#description").value = movimiento.descripcion;
+  document.querySelector("#amount").value = movimiento.monto;
+  document.querySelector(`input[name='type'][value='${movimiento.tipo}']`).checked = true;
+  editIndex = index;
+  submitButton.textContent = "Guardar Cambios";
 }
 
-function mapTransactionNames() {
-  const names = transacciones.map(t => t.descripcion);
-  console.log("Lista de nombres de transacciones:", names);
-}
-
-function filterTransactions() {
-  const filtroDeDatos = transacciones.filter(t => parseFloat(t.monto) > 100 && t.tipo === "expense");
-  console.log("Gastos mayores a $100:", filtroDeDatos);
+function eliminarTransaccion(index) {
+  transacciones.splice(index, 1);
+  actualizarLista();
 }
 
 form.addEventListener("submit", registrarIngresoOEgreso);
